@@ -1,0 +1,77 @@
+#######################################################
+			MEMO
+このファイルは、ユーザ検索、追加などを行うためのユーザインターフェースです。
+#######################################################
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <ProgressBar
+        android:id="@+id/SearchProg"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:visibility="gone"/>
+
+    <RadioGroup
+        android:id="@+id/Search_Group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/Search_Id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:layout_marginRight="30dp"
+            android:textSize="20dp"
+            android:text="@string/Search_Id"/>
+
+        <RadioButton
+            android:id="@+id/Search_Phone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20dp"
+            android:text="@string/Search_Phone"/>
+    </RadioGroup>
+
+    <EditText
+        android:id="@+id/Search_Edit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/Search_Group"
+        android:layout_margin="10dp"
+        android:background="@drawable/frame_style"
+        android:hint="idまたは電話番号を入力"
+        android:maxLength="12"
+        android:maxLines="1"
+        android:inputType="number"/>
+
+    <Button
+        android:id="@+id/Search_btn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/Search_Edit"
+        android:onClick="search_btn_onClick"
+        android:text="@string/Search_btn"/>
+
+    <TextView
+        android:id="@+id/txtSearchResult"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/Search_btn"
+        android:text="@string/txtSearchResult"
+        style="@style/Text"/>
+
+    <ListView
+        android:id="@+id/searchList"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtSearchResult">
+    </ListView>
+
+</RelativeLayout>

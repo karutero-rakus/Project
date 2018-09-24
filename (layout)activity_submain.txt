@@ -1,0 +1,48 @@
+############################################################
+			MEMO
+このファイルは、ログイン後に表示されるユーザインターフェースです。
+############################################################
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <SearchView
+        android:id="@+id/search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:iconifiedByDefault="false"
+        android:background="@drawable/frame_style"
+        android:focusable="false"
+        android:queryHint="検索文字列を入力" />
+
+    <TextView
+        android:id="@+id/txtadminlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/search"
+        android:background="@android:color/darker_gray"
+        android:text="@string/txtadminlist"/>
+
+    <ListView
+        android:id="@+id/adminlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtadminlist"/>
+
+    <TextView
+        android:id="@+id/txtfriendlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/adminlist"
+        android:background="@android:color/darker_gray"
+        android:text="@string/txtfriendlist"/>
+
+    <ListView
+        android:id="@+id/friendlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtfriendlist"/>
+
+</RelativeLayout>

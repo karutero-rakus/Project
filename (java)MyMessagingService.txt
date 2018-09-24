@@ -1,0 +1,84 @@
+//###########################################################
+//			MEMO
+//FCMからメッセージを受信するプログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+
+import android.content.Context;
+import android.content.Intent;
+
+import com.google.firebase.messaging.FirebaseMessagingService;
+import com.google.firebase.messaging.RemoteMessage;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.Map;
+
+public class MyMessagingService extends FirebaseMessagingService {
+
+    @Override
+    public void onMessageReceived(RemoteMessage remoteMessage){
+        //FCMメッセージを受信したときに呼び出される
+
+        //通知メッセージの受信
+        if (remoteMessage.getNotification() != null) {
+            RemoteMessage.Notification notification = remoteMessage.getNotification();
+            String title = notification.getTitle();
+            String body = notification.getBody();
+
+            android.util.Log.d("FCM-TEST", "メッセージタイプ: 通知\nタイトル: " + title + "\n本文: " + body);
+        }
+
+        // データメッセージの受信
+        if (remoteMessage.getData().size() > 0) {
+            Map<String, String> data = remoteMessage.getData();
+            String subject = data.get("subject");
+            String text = data.get("text");
+
+            android.util.Log.d("FCM-TEST", "メッセージタイプ: データ\n送信元ID: " + subject + "\n本文: " + text); //送信元ID＋メッセージ
+
+
+            String BR = System.getProperty("line.separator"); //改行コードを取得
+            BufferedWriter writer = null;
+            try{
+                int SenderID = Integer.parseInt(subject);
+                System.out.println("SenderID:"+SenderID);
+                writer = new BufferedWriter(new OutputStreamWriter(openFileOutput(SenderID + ".tok", Context.MODE_APPEND)));
+                if(text.contains(BR)){ //改行コードがある場合
+                    //System.out.println("true");
+                    String[] RToke = text.split(BR);
+                    for(int i = 0; i < RToke.length; i++){
+                        writer.write("0/"+RToke[i]+BR);
+                        sendMessage(RToke[i]+BR);//ブロードキャストintentメソッドへ
+                    }
+                }else{
+                    //System.out.println("false");
+                    //ここにエスケープさせる
+                    System.out.println("text:"+text);
+                    writer.write("0/"+ text +BR);
+                    sendMessage(text+BR);//ブロードキャストintentメソッドへ
+                }
+            }catch (IOException e){
+                e.printStackTrace();
+            }finally {
+                try{
+                    if(writer != null){
+                        writer.close();
+                    }
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    //ブロードキャストintent
+    protected void sendMessage(String msg){
+        Intent broadcast = new Intent("RECVMESSAGE_ACTION");
+        broadcast.putExtra("message",msg);
+        sendBroadcast(broadcast);
+    }
+}

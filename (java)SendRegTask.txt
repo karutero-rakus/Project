@@ -1,0 +1,140 @@
+//###########################################################
+//			MEMO
+//サーバにユーザ新規登録情報を送信するプログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.AsyncTask;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+
+public class SendRegTask extends AsyncTask<String,Integer,String> {
+    static DatagramSocket socket = null;
+    static final int DFSPORT = 9000; //サーバ待ち受けポート
+    static final int PACKETSIZE = 512; //512byte以下にしろ
+    static final int TIMEOUT = 3000; //タイムアウト時間（ミリ秒）
+    static final int MAXTRIES = 5; //再送回数
+    static int tries = 0; //パケット再送カウント
+    static boolean recvRes = false;
+    static InetSocketAddress ServAddr = new InetSocketAddress("172.22.1.50",DFSPORT); //AppServerIP,port
+
+    Context context;
+    protected DatabaseHelper helper = null;
+    private EditText txtName = null;
+    private EditText txtPhone = null;
+    private String sendmessage; //サーバに送る情報
+    private String recvmessage; //サーバから帰ってくる情報
+    private ProgressBar progress;
+
+    private CallBackTask callbacktask;
+
+    public SendRegTask(Context context){
+        super();
+        RegistrationActivity activity = (RegistrationActivity)context;
+        helper = new DatabaseHelper(activity);
+        txtName = (EditText)activity.findViewById(R.id.RegistName);
+        txtPhone = (EditText)activity.findViewById(R.id.RegistPhone);
+        this.context = context;
+        progress = (ProgressBar)activity.findViewById(R.id.RegProg);
+    }
+
+    //進捗バー用---------------------------------------------------
+    @Override
+    protected void onPreExecute(){ //進捗バー表示
+        progress.setVisibility(ProgressBar.VISIBLE);
+    }
+    protected void onProgressUpdate(Integer... values){ //進捗バー更新
+        progress.setProgress(values[0]);
+    }
+    //-------------------------------------------------------------
+
+    @Override
+    protected String doInBackground(String... value){
+        StringBuilder builder = new StringBuilder();
+        try{
+            publishProgress(50);
+            socket = new DatagramSocket(); //socket作成
+            socket.setSoTimeout(TIMEOUT); //受信待機時間の最大値（ミリ秒）
+            sendmessage = value[0];
+            byte[] sendbuf = sendmessage.getBytes();
+            byte[] recvbuf = new byte[PACKETSIZE];
+            DatagramPacket sendpacket = new DatagramPacket(sendbuf,sendbuf.length,ServAddr); //送信パケット
+            DatagramPacket recvPacket = new DatagramPacket(recvbuf,recvbuf.length); //受信パケット
+            do{
+                System.out.println("パケット送信");
+                socket.send(sendpacket); //パケット送信
+                try{
+                    socket.receive(recvPacket); //パケット受信(ID)
+                    recvmessage = new String(recvbuf,0,recvPacket.getLength());
+                    /*
+                    if(!recvPacket.getAddress().equals(ServAddr)){
+                        throw new IOException("違う宛先からパケットが届いた");
+                    }
+                    */
+                    recvRes = true;
+                }catch (InterruptedIOException e){
+                    tries += 1;
+                    System.out.println("タイムアウトしたので再送します。");
+                }
+            }while((!recvRes) && (tries < MAXTRIES)); //recvResがfalseでtriesが5以下だったらループ
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            socket.close();
+        }
+        if(recvRes != false){
+            builder.append(recvmessage);
+            publishProgress(100);
+        }else{
+            builder.append("0");//0:失敗
+        }
+        return builder.toString();
+    }
+
+    @Override
+    protected void onPostExecute(String result){
+        progress.setVisibility(ProgressBar.GONE);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        int id = Integer.parseInt(result); //電話番号重複時444
+        try {
+            if (id == 444) {
+                callbacktask.CallBack();
+            } else {
+                if (id != 0) {
+                    db.delete("user_info", null, null); //データベース初期化
+                    db.delete("friend_info", null, null); //データベース初期化
+                    ContentValues cv = new ContentValues();
+                    //管理者情報登録
+                    cv.put("NAME", txtName.getText().toString());
+                    cv.put("PHONE", txtPhone.getText().toString());
+                    cv.put("ID", id);
+                    db.insert("user_info", null, cv);
+                    Toast.makeText(context, "データの登録に成功しました。", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "データ登録に失敗しました。", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }finally {
+            db.close();
+        }
+    }
+    //callback用
+    void setOnCallBack(CallBackTask _cbj){
+        callbacktask = _cbj;
+    }
+    public static class CallBackTask{
+        public void CallBack(){
+        }
+    }
+}

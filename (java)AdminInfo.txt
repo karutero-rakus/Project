@@ -1,0 +1,157 @@
+//###########################################################
+//			MEMO
+//ユーザ情報表示画面のプログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.app.DialogFragment;
+import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import static com.example.j14234.project_v5_2.MainActivity.Kugiri;
+import static com.example.j14234.project_v5_2.MainActivity.MODE;
+
+public class AdminInfo extends AppCompatActivity {
+    DeleteTask DTask;
+    UpdateTask UTask;
+    private DatabaseHelper helper = null;
+    private int SendPhone =0;
+    private int SendId = 0;
+    protected String SendDeleteinfo;
+    protected String Update_info;
+    private int Sendid = 0;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_admininfo);
+
+        // アクションバーに前画面に戻る機能をつける
+        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        actionBar.setHomeButtonEnabled(true);
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
+        //ヘルパーを準備
+        helper = new DatabaseHelper(this);
+        EditText txtAdminName = (EditText) findViewById(R.id.AdminName);
+        EditText txtAdminPhone = (EditText) findViewById(R.id.AdminPhone);
+        TextView txtAdminId = (TextView)findViewById(R.id.AdminId);
+        //データベースからadmin情報をとる
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor cs;
+        try{
+            //String[] cols = {"NAME","PHONE"};
+            String[] cols = {"NAME","PHONE","ID"};
+            cs = db.query("user_info",cols,null,null,null,null,null,null);
+            if(cs.moveToFirst()){
+                txtAdminName.setText(cs.getString(0));
+                txtAdminPhone.setText(cs.getString(1));
+                txtAdminId.setText(cs.getString(2));
+            }else{
+                Toast.makeText(this,"データがありません。", Toast.LENGTH_SHORT).show();
+            }
+            cs.close();
+        }finally {
+            db.close();
+        }
+    }
+
+    //[削除]ボタンクリック時処理
+    public void Delete_onClick(View v){
+        //ダイアログ表示
+        DialogFragment deleteDialog = new DeleteDialog();
+        deleteDialog.show(getFragmentManager(),"delete_button");
+    }
+
+    /*ダイアログから返されるメソッド*/
+    public void onReturnValue(int value){
+        System.out.println("(1:消去 0:キャンセル)"+ value);
+        if(value == 1){
+            MODE = "4/";
+            SQLiteDatabase db = helper.getReadableDatabase();
+            Cursor cs;
+            try{
+                String[] clos = {"PHONE,ID"};
+                cs = db.query("user_info",clos,null,null,null,null,null,null);
+                if(cs.moveToFirst()) {
+                    SendPhone = cs.getInt(0);
+                    SendId = cs.getInt(1);
+                }
+                cs.close();
+            }finally {
+                db.close();
+            }
+            SendDeleteinfo = MODE + SendPhone + Kugiri + SendId;
+            //非同期処理実行
+            DTask = new DeleteTask(AdminInfo.this);
+            DTask.execute(SendDeleteinfo);
+
+            /*collback処理-------------------------------------------------*/
+            DTask.DeleteCallBack(new DeleteTask.CallBackTask(){
+                @Override
+                public void CallBack(){
+                    super.CallBack();
+                    Intent i = new Intent(AdminInfo.this,MainActivity.class);
+                    i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    i.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    startActivity(i);
+                }
+            });
+        }else{
+            System.out.println("ユーザー削除をキャンセルしました。");
+        }
+    }
+
+    //[変更]ボタンクリック時処理
+    public void Update_onClick(View v){
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor cs;
+        try{
+            String[] clos = {"ID"};
+            cs = db.query("user_info",clos,null,null,null,null,null,null);
+            if(cs.moveToFirst()){
+                Sendid = cs.getInt(0);
+            }
+            cs.close();
+        }finally {
+            db.close();
+        }
+
+        MODE = "5/";
+        String UpdateName = ((EditText)findViewById(R.id.AdminName)).getText().toString();
+        UpdateName = UpdateName.replace("/",","); //エスケープ
+        UpdateName = UpdateName + "/";
+        String UpdatePhone = ((EditText)findViewById(R.id.AdminPhone)).getText().toString();
+        UpdatePhone = UpdatePhone.replace("/",","); //エスケープ
+        UpdatePhone = UpdatePhone + "/";
+
+        Update_info = MODE + UpdateName + UpdatePhone + Sendid;
+
+        //非同期処理開始
+        UTask = new UpdateTask(AdminInfo.this);
+        UTask.execute(Update_info);
+
+        System.out.println("Update_info:" + Update_info);
+    }
+
+    //アクションバーに戻るボタンをつける処理-------------------------------------------------
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    //-------------------------------------------------------------------------
+}

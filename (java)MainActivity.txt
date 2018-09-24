@@ -1,0 +1,53 @@
+//###########################################################
+//						MEMO
+//ログイン画面(初期画面)の動作プログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Toast;
+
+public class MainActivity extends Activity { //AppCompatActivity:タイトルバーあり Activity:タイトルバーなし
+    static String MODE = "0/"; //0:トークン処理1:ユーザ登録2:メッセージ処理3:ユーザ検索4:ユーザ削除5:ユーザ変更
+    static final String Kugiri = "/";
+    private DatabaseHelper helper = null;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        helper = new DatabaseHelper(this);
+    }
+
+    //[新規登録]ボタンクリック時処理
+    public void registration_onClick(View v){
+        MODE = "1/";
+        Intent i = new Intent(this,RegistrationActivity.class);
+        startActivity(i);
+    }
+
+    //[ログイン]ボタンクリック時処理
+    public void Login_onClick(View v){
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor cs;
+        try{
+            String[] cols = {"ID"};
+            cs = db.query("user_info", cols, null, null, null, null, null);
+            if (cs.moveToFirst()){
+                Intent i = new Intent(this,SubMainActivity.class);
+                startActivity(i);
+            }else{
+                Toast.makeText(this, "新規登録を行ってください。", Toast.LENGTH_SHORT).show();
+            }
+            cs.close();
+        }finally {
+            db.close();
+        }
+    }
+}

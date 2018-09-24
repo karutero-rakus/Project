@@ -1,0 +1,103 @@
+###################################################################
+                         MEMO
+このファイルはユーザ情報を表示するためのユーザインタフェースです。
+###################################################################
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <ProgressBar
+        android:id="@+id/AdminProg"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/txtAdminName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:layout_marginLeft="50dp"
+        android:text="@string/txtAdminName"
+        style="@style/Text"/>
+
+    <EditText
+        android:id="@+id/AdminName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/txtAdminName"
+        android:layout_alignBottom="@id/txtAdminName"
+        android:layout_marginRight="30dp"
+        android:maxLength="8"
+        android:maxLines="1"
+        android:hint="名前を入力(8文字)"
+        android:inputType="textCapSentences"/>
+
+    <TextView
+        android:id="@+id/txtAdminPhone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtAdminName"
+        android:layout_marginTop="40dp"
+        android:layout_alignEnd="@id/txtAdminName"
+        android:text="@string/txtAdminPhone"
+        style="@style/Text"/>
+
+    <EditText
+        android:id="@+id/AdminPhone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtAdminName"
+        android:layout_toRightOf="@id/txtAdminPhone"
+        android:layout_alignBottom="@id/txtAdminPhone"
+        android:layout_alignEnd="@id/AdminName"
+        android:maxLength="12"
+        android:maxLines="1"
+        android:hint="電話番号を入力(-は必要ない)"
+        android:inputType="phone"/>
+
+    <TextView
+        android:id="@+id/txtAdminId"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtAdminPhone"
+        android:layout_alignEnd="@id/txtAdminName"
+        android:layout_marginTop="40dp"
+        android:text="@string/txtAdminId"
+        style="@style/Text"/>
+
+    <TextView
+        android:id="@+id/AdminId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtAdminPhone"
+        android:layout_marginTop="40dp"
+        android:layout_alignEnd="@id/AdminName"
+        android:layout_toRightOf="@id/txtAdminId"
+        android:maxLines="1"
+        style="@style/Text"/>
+
+    <Button
+        android:id="@+id/ChangeInfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_below="@id/txtAdminId"
+        android:onClick="Update_onClick"
+        android:text="@string/ChangeInfo"/>
+
+    <Button
+        android:id="@+id/Delete"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_below="@id/txtAdminId"
+        android:layout_toRightOf="@id/ChangeInfo"
+        android:onClick="Delete_onClick"
+        android:text="@string/Delete"/>
+
+</RelativeLayout>

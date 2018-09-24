@@ -1,0 +1,113 @@
+//###########################################################
+//			MEMO
+//サーバに検索ユーザ情報を送信するプログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.content.Context;
+import android.os.AsyncTask;
+import android.widget.ProgressBar;
+
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+
+import static com.example.j14234.project_v5_2.SendRegTask.MAXTRIES;
+import static com.example.j14234.project_v5_2.SendRegTask.PACKETSIZE;
+import static com.example.j14234.project_v5_2.SendRegTask.TIMEOUT;
+import static com.example.j14234.project_v5_2.SendRegTask.recvRes;
+import static com.example.j14234.project_v5_2.SendRegTask.socket;
+import static com.example.j14234.project_v5_2.SendRegTask.tries;
+import static com.example.j14234.project_v5_2.SendRegTask.ServAddr;
+
+public class SendSearchTask extends AsyncTask<String,Integer,String> {
+    private String sendmessage = null;
+    private String recvmessage = null;
+    //private TextView searchResult;
+    private CallBackTask callbacktask;
+
+    private ProgressBar progress;
+
+    //結果を反映させるTextViewを取得
+    public SendSearchTask(Context context){
+        super();
+        UserSearch activity = (UserSearch)context;
+        progress = (ProgressBar)activity.findViewById(R.id.SearchProg);
+    }
+
+    //進捗バー用---------------------------------------------------
+    @Override
+    protected void onPreExecute(){ //進捗バー表示
+        progress.setVisibility(ProgressBar.VISIBLE);
+    }
+    protected void onProgressUpdate(Integer... values){ //進捗バー更新
+        progress.setProgress(values[0]);
+    }
+    //-------------------------------------------------------------
+
+    //別スレッドで処理
+    @Override
+    protected String doInBackground(String... value){
+        StringBuilder builder = new StringBuilder();
+        try{
+            publishProgress(50);
+            socket = new DatagramSocket(); //ソケット作成
+            socket.setSoTimeout(TIMEOUT); //受信待機時間の最大値（ミリ秒）
+            sendmessage = value[0];
+            byte[] sendbuf = sendmessage.getBytes();
+            byte[] recvbuf = new byte[PACKETSIZE];
+            DatagramPacket sendpacket = new DatagramPacket(sendbuf,sendbuf.length,ServAddr); //送信パケット
+            DatagramPacket recvPacket = new DatagramPacket(recvbuf,recvbuf.length); //受信パケット
+            do{
+                System.out.println("パケット送信");
+                socket.send(sendpacket); //パケット送信
+                try{
+                    socket.receive(recvPacket); //パケット受信
+                    recvmessage = new String(recvbuf,0,recvPacket.getLength());
+                    System.out.println("受信:"+recvmessage);
+                    /*
+                    if(!recvPacket.getAddress().equals(ServAddr)){
+                        throw new IOException("違う宛先からパケットが届いた");
+                    }
+                    */
+                    recvRes = true;
+                }catch (InterruptedIOException e){
+                    tries += 1;
+                    System.out.println("タイムアウトしたので再送します。");
+                }
+            }while((!recvRes) && (tries < MAXTRIES)); //recvResがfalseでtriesが5以下だったらループ
+        }catch(IOException e){
+            e.printStackTrace();
+        }finally {
+            socket.close();
+        }
+        if(recvRes != false) {
+            builder.append(recvmessage);
+            publishProgress(100);
+        }else{
+            builder.append("失敗/0");
+            System.out.println("送信失敗");
+        }
+        return builder.toString();
+    }
+
+    //非同期処理後TextViewに反映
+    @Override
+    protected void onPostExecute(String result) {
+        progress.setVisibility(ProgressBar.GONE);
+        //searchResult.setText(result);
+        callbacktask.CallBack(result);
+    }
+
+    public void senOnCallBack(CallBackTask _cbj){
+        callbacktask = _cbj;
+    }
+
+    //コールバック用のstaticなclass
+    public static class CallBackTask{
+        public void CallBack(String result){
+        }
+    }
+}

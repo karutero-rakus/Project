@@ -1,0 +1,179 @@
+//###########################################################
+//			MEMO
+//ユーザ検索画面用プログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.app.DialogFragment;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.RadioGroup;
+import android.widget.Toast;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+
+import static com.example.j14234.project_v5_2.MainActivity.MODE;
+
+public class UserSearch extends AppCompatActivity {
+    SendSearchTask Stask;
+    String searchQ = "0/";
+    String resultName = null;
+    int resultId = 0;
+    ArrayAdapter<String> adapter;
+    protected DatabaseHelper helper = null;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_usersearch);
+
+        // アクションバーに前画面に戻る機能をつける
+        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        actionBar.setHomeButtonEnabled(true);
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
+        RadioGroup search_group = (RadioGroup) findViewById(R.id.Search_Group); //RadiGroupを取得
+        //RadioGroupに対してイベントリスナーを登録
+        search_group.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener(){
+            //ラジオボタン変更時の処理
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                switch (checkedId) {
+                    case R.id.Search_Id:
+                        searchQ = "0/";
+                        break;
+                    case R.id.Search_Phone:
+                        searchQ = "1/";
+                        break;
+                }
+                //デバック用
+                System.out.println("searchQ:" + searchQ);
+            }
+        });
+    }
+    //[検索]ボタンクリック時の処理
+    public void search_btn_onClick(View v){
+        String sendid = ((EditText) findViewById(R.id.Search_Edit)).getText().toString();
+        if (sendid.length() != 0){
+            MODE = "3/";
+            String searchinfo = MODE + searchQ + sendid;
+            //非同期処理の実行
+            Stask = new SendSearchTask(UserSearch.this);
+            Stask.execute(searchinfo);
+
+            //Callback処理--------------------------------------------------------
+            Stask.senOnCallBack(new SendSearchTask.CallBackTask() {
+                @Override
+                public void CallBack(String result) {
+                    super.CallBack(result);
+                    System.out.println("CallBack処理開始");
+                    String[] resultArray = result.split("/");
+                    resultName = resultArray[0];
+                    System.out.println("resultName:" + resultName);
+                    resultId = Integer.parseInt(resultArray[1]);
+                    System.out.println("resultId:" + resultId);
+                    if (resultId != 0) {
+                        final ArrayList<String> data = new ArrayList<>();
+                        data.add(resultName);
+                        //配列アダプターを作成
+                        adapter = new ArrayAdapter<String>(UserSearch.this, android.R.layout.simple_expandable_list_item_1, data);
+                        ListView searchList = (ListView) findViewById(R.id.searchList);
+                        searchList.setAdapter(adapter);
+
+                        //リストクリック時処理
+                        searchList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            public void onItemClick(AdapterView<?> av, View view, int position, long id) {
+                                //リストクリック時処理
+                                DialogFragment dialog = new MyDialogFragment();
+                                Bundle args = new Bundle();
+                                args.putString("resultName", resultName);
+                                dialog.setArguments(args);
+                                dialog.show(getFragmentManager(), "dialog_button");
+                            }
+                        });
+                    } else {
+                        Toast.makeText(UserSearch.this, "データがありません", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }); //-----------------------------------------------------------------------
+        }else{
+            Toast.makeText(UserSearch.this, "値が正しく設定されていません。", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    //ダイアログから返されるメソッド
+    public void onReturnValue(int value){
+        System.out.println("onReturnValue成功");
+        helper = new DatabaseHelper(this);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        Cursor cs;
+        Cursor cs2;
+        try{
+            if(value == 1){
+                String[] cols = {"ID"};
+                String[] params = {Integer.toString(resultId)};
+
+                cs = db.query("friend_info",cols,"ID=?",params,null,null,null,null);
+                cs2 = db.query("user_info",cols,"ID=?",params,null,null,null,null);
+                if(cs.moveToFirst() || cs2.moveToFirst()) { //すでに登録済みまたは自分を登録しようとするとき
+                    System.out.println("登録済み");
+                }else{
+                    ContentValues cv = new ContentValues();
+                    cv.put("NAME", resultName);
+                    cv.put("ID", resultId);
+                    db.insertWithOnConflict("friend_info", null, cv, SQLiteDatabase.CONFLICT_REPLACE);
+                    System.out.println("登録しました。");
+                    cs2.close();
+
+                    //ここからTokeファイルを作る--------------------------------
+                    BufferedWriter writer = null;
+                    try {
+                        writer = new BufferedWriter(new OutputStreamWriter(openFileOutput(resultId + ".tok", Context.MODE_PRIVATE)));
+                    }catch (IOException e){
+                        e.printStackTrace();
+                    }finally {
+                        try{
+                            if(writer != null){
+                                writer.close();
+                            }
+                        }catch (IOException e){
+                            e.printStackTrace();
+                        }
+                    }
+                    //-------------------------------------------------------------
+                }
+                cs.close();
+                cs2.close();
+            }else{
+                System.out.println("登録しませんでした。");
+            }
+        }finally {
+            db.close();
+        }
+    }
+
+    //アクションバーに戻るボタンをつける処理-------------------------------------------------
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    //-------------------------------------------------------------------------
+}

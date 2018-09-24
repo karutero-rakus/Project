@@ -1,0 +1,211 @@
+//###########################################################
+//			MEMO
+//メッセージ処理画面用プログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+
+import static com.example.j14234.project_v5_2.MainActivity.Kugiri;
+import static com.example.j14234.project_v5_2.MainActivity.MODE;
+
+public class MessageActivity extends AppCompatActivity {
+    SendMessageTask Mtask;
+    private int Destid = 0;
+    protected String message;
+    private int Sendid = 0;
+
+    UpdateReceiver receiver;
+
+    protected void onCreate(Bundle savedInstanceState){ //activity生成時処理される
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_message);
+
+        // アクションバーに前画面に戻る機能をつける
+        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        actionBar.setHomeButtonEnabled(true);
+        actionBar.setDisplayHomeAsUpEnabled(true);
+
+        //[送信]ボタンクリック時処理
+        findViewById(R.id.Sendbtn).setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                String sendTxt = ((EditText) findViewById(R.id.Message)).getText().toString();
+                if(sendTxt.length() != 0) {
+                    sendTxt = sendTxt.replace("/", ","); //エスケープ
+                    sendTxt = sendTxt + "/";
+                    //2/メッセージ/送信元ID/宛先ID
+                    message = MODE + sendTxt + Sendid + Kugiri + Destid;
+                    if((message.getBytes().length) < 512) { //512byte以下なら送信処理--------------------------------
+                        ((EditText) findViewById(R.id.Message)).getEditableText().clear(); //EditTextクリア
+                        //非同期処理実行
+                        Mtask = new SendMessageTask(MessageActivity.this);
+                        Mtask.execute(message);
+
+                        //callback処理---------------------------------------------------------------
+                        Mtask.senOnCallBack(new SendMessageTask.CallBackTask(){
+                            @Override
+                            public void CallBack(String result){
+                                String BR = System.getProperty("line.separator"); //改行コードを取得
+                                BufferedWriter writer = null;
+                                try {
+                                    System.out.println("格納ファイル:"+Destid+".tok");
+                                    writer = new BufferedWriter(new OutputStreamWriter(openFileOutput(Destid + ".tok", Context.MODE_APPEND)));
+                                    if(result.contains(BR)){ //改行コードがある場合
+                                        System.out.println("true");
+                                        String[] SToke = result.split(BR);
+                                        for(int i = 0; i < SToke.length; i++){
+                                            writer.write("1/"+SToke[i]+BR);
+                                        }
+                                    }else{
+                                        System.out.println("false");
+                                        writer.write("1/"+ result +BR);
+                                    }
+                                }catch (IOException e){
+                                    e.printStackTrace();
+                                }finally {
+                                    try{
+                                        if(writer != null){
+                                            writer.close();
+                                        }
+                                    }catch (IOException e){
+                                        e.printStackTrace();
+                                    }
+                                }
+                                System.out.println("送信メッセージをトークファイルに格納できました");
+                            }
+                        });
+                        //-------------------------------------------------------------------------
+
+                    }else{
+                        Toast.makeText(MessageActivity.this, "文字が多すぎる", Toast.LENGTH_SHORT).show();
+                    }//------------------------------------------------------------------------------------------------
+                }else{
+                    Toast.makeText(MessageActivity.this, "値が正しく設定されていません。", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        //レシーバを登録
+        receiver = new UpdateReceiver();
+        System.out.println("UpdateReceiver起動");
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("RECVMESSAGE_ACTION");
+        registerReceiver(receiver,filter);
+    }
+    //ブロードキャストintentから受け取ったメッセージを反映
+    private class UpdateReceiver extends BroadcastReceiver{
+        @Override
+        public void onReceive(Context context,Intent intent){
+            Bundle extras = intent.getExtras();
+            String msg = extras.getString("message");
+            System.out.println("UpdateReceiver:"+msg);
+            TextView recvResult = (TextView) findViewById(R.id.RecvResult);
+            recvResult.append(msg);
+        }
+    }
+    //-----------------------------------------------------------
+
+    //フォアグラウンドになるとき処理
+    protected void onResume(){
+        super.onResume();
+        DatabaseHelper helper = new DatabaseHelper(this);
+        BufferedReader reader = null;
+
+        //インテント取得
+        Intent i = this.getIntent();
+        int position = i.getIntExtra("Position",0); //引数値がない場合0になる。
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor cs;
+        Cursor cs2;
+        try{
+            String[] clos = {"ID"};
+            cs = db.query("friend_info",clos,null,null,null,null,null,null);
+            cs2 = db.query("user_info",clos,null,null,null,null,null,null);
+            if(cs.moveToPosition(position)){
+                Destid = cs.getInt(0);
+            }else{
+                Toast.makeText(this,"データがありません", Toast.LENGTH_SHORT).show();
+            }
+            cs.close();
+            if(cs2.moveToFirst()){
+                Sendid = cs2.getInt(0);
+            }else{
+                Toast.makeText(this,"この表示は出ない", Toast.LENGTH_SHORT).show();
+            }
+            cs2.close();
+        }finally {
+            db.close();
+        }
+
+        //トークファイル読み込み
+        StringBuilder sendmessage = new StringBuilder();
+        StringBuilder recvmessage = new StringBuilder();
+        String BR = System.getProperty("line.separator"); //改行コードを取得
+        try{
+            reader = new BufferedReader(new InputStreamReader(openFileInput(Destid+".tok")));
+            String line;
+            while((line = reader.readLine()) != null){
+                String[] Toke = line.split("/");
+                if(Toke[0].equals("1")){ //右（自分）
+                    System.out.println("Toke1");
+                    sendmessage.append(Toke[1]);
+                    recvmessage.append(BR);
+                    sendmessage.append(System.getProperty("line.separator"));
+                }if(Toke[0].equals("0")){ //左（相手）
+                    System.out.println("Toke0");
+                    recvmessage.append(Toke[1]);
+                    sendmessage.append(BR);
+                    recvmessage.append(System.getProperty("line.separator"));
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+        //StringBufferの内容をテキストエリアに反映
+        TextView sendResult = (TextView) findViewById(R.id.SendResult);
+        TextView recvResult = (TextView) findViewById(R.id.RecvResult);
+        sendResult.setText(sendmessage.toString());
+        recvResult.setText(recvmessage.toString());
+    }
+
+    //アクションバーに戻るボタンをつける処理-------------------------------------------------
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+            case android.R.id.home:
+                unregisterReceiver(receiver);//MessageActivityを閉じるときレシーバを閉じる
+                finish();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    //-------------------------------------------------------------------------
+}

@@ -1,0 +1,79 @@
+//###########################################################
+//			MEMO
+//新規登録画面の動作プログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.app.Activity;
+import android.app.DialogFragment;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.Toast;
+
+import com.google.firebase.iid.FirebaseInstanceId;
+
+import static com.example.j14234.project_v5_2.MainActivity.Kugiri;
+import static com.example.j14234.project_v5_2.MainActivity.MODE;
+
+public class RegistrationActivity extends Activity {
+    SendRegTask Rtask;
+    private EditText txtName = null; //登録ユーザー名
+    private EditText txtPhone = null; //登録電話番号
+    protected String userinfo = null; //送信するユーザー情報
+    private String Token = null; //デバイストークン
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_registration);
+
+        Token = FirebaseInstanceId.getInstance().getToken();
+        txtName = (EditText) findViewById(R.id.RegistName);
+        txtPhone = (EditText) findViewById(R.id.RegistPhone);
+
+        findViewById(R.id.send_userinfobtn).setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                if(txtName.length() != 0 && txtPhone.length() != 0){
+                    String Sendname = ((EditText) findViewById(R.id.RegistName)).getText().toString();
+                    Sendname = Sendname.replace("/",","); //エスケープ
+                    String Sendphone = ((EditText) findViewById(R.id.RegistPhone)).getText().toString();
+                    // 1/ユーザ名/電話番号/デバイストークン
+                    userinfo = MODE + Sendname + Kugiri + Sendphone + Kugiri + Token;
+                    //非同期処理
+                    Rtask = new SendRegTask(RegistrationActivity.this);
+                    Rtask.execute(userinfo);
+
+                    //Callback処理(重複処理コールバック)
+                    Rtask.setOnCallBack(new SendRegTask.CallBackTask(){
+                        @Override
+                        public void CallBack(){
+                            super.CallBack();
+                            System.out.println("Overlap用CallBack処理開始");
+                            DialogFragment dialog = new OverlapDialog();
+                            dialog.show(getFragmentManager(), "overlap_button");
+                            System.out.println("Overlap用CallBack処理終了");
+                        }
+                    });
+                }else{
+                    Toast.makeText(RegistrationActivity.this, "値が正しく設定されていません。", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+    //overlapDialogから返されるメソッド
+    //################################################
+    //重複処理未完成↓
+    //################################################
+    public void onReturnValue(int value){
+        System.out.println("onReturnValue成功");
+        System.out.println("(1:更新登録 2:キャンセル) " + value);
+    }
+
+    //[終了]ボタンクリック時処理
+    public void Backbtn_onClick(View v){
+        //RegistrationActivityの終了
+        finish();
+    }
+}

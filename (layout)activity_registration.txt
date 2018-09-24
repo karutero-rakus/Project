@@ -1,0 +1,69 @@
+##########################################################
+			MEMO
+このファイルは、ユーザ新規登録をするためのユーザインターフェースです。
+##########################################################
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <ProgressBar
+        android:id="@+id/RegProg"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:visibility="gone"/>
+    <TextView
+        android:id="@+id/txtRegistName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/txtRegistName"
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="30dp"
+        style="@style/Text"/>
+    <EditText
+        android:id="@+id/RegistName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/txtRegistName"
+        android:hint="名前を入力(8文字以内)"
+        android:maxLines="1"
+        android:maxLength="8"
+        android:inputType="textCapSentences"/>
+    <TextView
+        android:id="@+id/txtRegistPhone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/txtRegistPhone"
+        android:layout_below="@id/txtRegistName"
+        android:layout_marginTop="20dp"
+        android:layout_alignRight="@id/txtRegistName"
+        style="@style/Text"/>
+    <EditText
+        android:id="@+id/RegistPhone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtRegistName"
+        android:layout_toRightOf="@id/txtRegistPhone"
+        android:hint="電話番号を入力(-は必要ない)"
+        android:maxLength="12"
+        android:maxLines="1"
+        android:inputType="phone"/>
+    <Button
+        android:id="@+id/Backbtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txtRegistPhone"
+        android:layout_margin="10dp"
+        android:onClick="Backbtn_onClick"
+        android:text="@string/Backbtn"/>
+    <Button
+        android:id="@+id/send_userinfobtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/Backbtn"
+        android:layout_margin="10dp"
+        android:text="@string/send_userinfobtn"/>
+
+</RelativeLayout>

@@ -1,0 +1,126 @@
+//###########################################################
+//			MEMO
+//ユーザ情報更新用プログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.AsyncTask;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
+import java.io.IOException;
+import java.io.InterruptedIOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+
+import static com.example.j14234.project_v5_2.SendRegTask.MAXTRIES;
+import static com.example.j14234.project_v5_2.SendRegTask.PACKETSIZE;
+import static com.example.j14234.project_v5_2.SendRegTask.TIMEOUT;
+import static com.example.j14234.project_v5_2.SendRegTask.recvRes;
+import static com.example.j14234.project_v5_2.SendRegTask.socket;
+import static com.example.j14234.project_v5_2.SendRegTask.tries;
+import static com.example.j14234.project_v5_2.SendRegTask.ServAddr;
+
+public class UpdateTask extends AsyncTask<String,Integer,String> {
+    private String sendmessage;
+    private String recvmessage;
+
+    protected DatabaseHelper helper = null;
+    private EditText UpdateName = null;
+    private EditText UpdatePhone = null;
+    private ProgressBar progress;
+
+    Context context;
+
+    public UpdateTask(Context context){
+        super();
+        AdminInfo activity = (AdminInfo)context;
+        helper = new DatabaseHelper(activity);
+        UpdateName = (EditText)activity.findViewById(R.id.AdminName);
+        UpdatePhone = (EditText)activity.findViewById(R.id.AdminPhone);
+        this.context = context;
+
+        progress = (ProgressBar)activity.findViewById(R.id.AdminProg);
+    }
+
+    //進捗バー用---------------------------------------------------
+    @Override
+    protected void onPreExecute(){ //進捗バー表示
+        progress.setVisibility(ProgressBar.VISIBLE);
+    }
+    protected void onProgressUpdate(Integer... values){ //進捗バー更新
+        progress.setProgress(values[0]);
+    }
+    //-------------------------------------------------------------
+
+    @Override
+    protected String doInBackground(String... value){
+        StringBuilder builder = new StringBuilder();
+        try{
+            publishProgress(50);
+            socket = new DatagramSocket(); //ソケット作成
+            socket.setSoTimeout(TIMEOUT); //受信待機時間の最大値（ミリ秒）
+            sendmessage = value[0];
+            byte[] sendbuf = sendmessage.getBytes();
+            byte[] recvbuf = new byte[PACKETSIZE];
+            DatagramPacket sendpacket = new DatagramPacket(sendbuf,sendbuf.length,ServAddr); //送信パケット
+            DatagramPacket recvPacket = new DatagramPacket(recvbuf,recvbuf.length); //受信パケット
+
+            do{
+                System.out.println("パケット送信");
+                socket.send(sendpacket); //パケット送信
+                try{
+                    socket.receive(recvPacket); //パケット受信
+                    recvmessage = new String(recvbuf,0,recvPacket.getLength());
+                    System.out.println("受信:"+recvmessage);
+                    /*
+                    if(!recvPacket.getAddress().equals(ServAddr)){
+                        throw new IOException("違う宛先からパケットが届いた");
+                    }
+                    */
+                    recvRes = true;
+
+                }catch (InterruptedIOException e){
+                    tries += 1;
+                    System.out.println("タイムアウトしたので再送します。");
+                }
+            }while((!recvRes) && (tries < MAXTRIES)); //recvResがfalseでtriesが5以下だったらループ
+        }catch(IOException e){
+            e.printStackTrace();
+        }finally {
+            socket.close();
+        }
+        if(recvRes != false) {
+            builder.append(recvmessage);
+            publishProgress(100);
+        }else{
+            builder.append("0");
+        }
+        return builder.toString();
+    }
+
+    @Override
+    protected void onPostExecute(String result){ //1:成功 0:失敗
+        progress.setVisibility(ProgressBar.GONE);
+        int i = Integer.parseInt(result);
+        if(i == 1){
+            SQLiteDatabase db = helper.getWritableDatabase();
+            try{
+                ContentValues cv = new ContentValues();
+                cv.put("NAME",UpdateName.getText().toString());
+                cv.put("PHONE",UpdatePhone.getText().toString());
+                db.update("user_info",cv,null,null);
+            }finally {
+                db.close();
+            }
+            Toast.makeText(context, "変更しました", Toast.LENGTH_SHORT).show();
+        }else{
+            System.out.println("変更失敗");
+        }
+    }
+}

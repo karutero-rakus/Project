@@ -1,0 +1,27 @@
+###############################################
+                    MEMO
+このファイルはログイン画面（初期画面）のユーザインタフェースです。
+###############################################
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <Button
+        android:id="@+id/Login"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/Login"
+        android:onClick="Login_onClick"
+        android:layout_centerVertical="true"/>
+
+    <Button
+        android:id="@+id/NewCreate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/Login"
+        android:text="@string/NewCreate"
+        android:onClick="registration_onClick"/>
+
+</RelativeLayout>

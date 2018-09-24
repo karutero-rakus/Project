@@ -1,0 +1,53 @@
+//###########################################################
+//			MEMO
+//トークン更新用プログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.FirebaseInstanceIdService;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+
+import static com.example.j14234.project_v5_2.MainActivity.Kugiri;
+import static com.example.j14234.project_v5_2.SendRegTask.ServAddr;
+import static com.example.j14234.project_v5_2.SendRegTask.socket;
+
+public class MyInstanceIdService extends FirebaseInstanceIdService {
+    @Override
+    public void onTokenRefresh(){ //起動時とトークン更新時実行される
+        //トークンが更新されたときに呼び出される トークンがまだ生成されていない場合はnullを返す
+        String token = FirebaseInstanceId.getInstance().getToken();
+
+        DatabaseHelper helper = new DatabaseHelper(this);
+        SQLiteDatabase db = helper.getReadableDatabase();
+        Cursor cs;
+        try {
+            String[] cols = {"ID"};
+            cs = db.query("user_info", cols, null, null, null, null, null);
+            if (cs.moveToFirst()) {
+                try {
+                    int Logid = cs.getInt(0);
+
+                    socket = new DatagramSocket(); //ソケット作成
+                    String sendmessage = "0/" + Logid + Kugiri + token;
+                    byte[] sendbuf = sendmessage.getBytes(); //送信パケット
+                    DatagramPacket sendpacket = new DatagramPacket(sendbuf, sendbuf.length, ServAddr);
+                    socket.send(sendpacket); //パケット送信
+                }finally {
+                    socket.close();
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            db.close();
+        }
+    }
+}

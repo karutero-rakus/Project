@@ -1,0 +1,45 @@
+//###########################################################
+//			MEMO
+//SQLiteを使用するためのプログラム
+//###########################################################
+
+package com.example.j14234.project_v5_2;
+
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+
+public class DatabaseHelper extends SQLiteOpenHelper {
+    static final private String DBNAME = "USER_INFO";
+    static final private int VERSION = 1;
+
+    //テーブル作成文
+    static final private String CREATE_TABLE_user_info = "CREATE TABLE user_info(NAME text,PHONE INTEGER,ID INTEGER)";
+    static final private String CREATE_TABLE_friend_info = "CREATE TABLE friend_info(NAME text,ID INTEGER)";
+    //テーブル削除文
+    static final private String DROP_TABLE_user_info = "DROP TABLE user_info";
+    static final private String DROP_TABLE_friend_info = "DROP TABLE friend_info";
+
+    //コンストラクタ
+    public DatabaseHelper(Context context){
+        super(context,DBNAME,null,VERSION);
+    }
+    @Override
+    public void onOpen(SQLiteDatabase db){
+        super.onOpen(db); //データベースオープン
+    }
+
+    //テーブル作成
+    @Override
+    public void onCreate(SQLiteDatabase db){
+        db.execSQL(CREATE_TABLE_user_info);
+        db.execSQL(CREATE_TABLE_friend_info);
+    }
+
+    //データベースをバージョンアップした時、テーブルを再作成
+    public void onUpgrade(SQLiteDatabase db, int old_v, int new_v){
+        db.execSQL(DROP_TABLE_user_info);
+        db.execSQL(DROP_TABLE_friend_info);
+        onCreate(db);
+    }
+}
